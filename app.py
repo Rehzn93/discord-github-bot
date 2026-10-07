@@ -14,7 +14,6 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 CHANNEL_ID = int(os.getenv("DISCORD_CHANNEL_ID"))
 
 intents = discord.Intents.default()
-
 client = discord.Client(intents=intents)
 
 
@@ -23,8 +22,18 @@ async def on_ready():
     print(f"✅ Connecté à Discord en tant que {client.user}")
 
 
+async def send_discord_message(message):
+    try:
+        channel = client.get_channel(CHANNEL_ID)
 
+        if channel is None:
+            channel = await client.fetch_channel(CHANNEL_ID)
 
+        await channel.send(message)
+        print("✅ Message envoyé sur Discord")
+
+    except Exception as e:
+        print(f"❌ Erreur Discord : {e}")
 
 
 @app.route("/github", methods=["POST"])
@@ -33,16 +42,10 @@ def github_webhook():
 
     print("📦 Webhook GitHub reçu !")
 
-    # Informations du dépôt
     repository = data["repository"]["full_name"]
-
-    # Informations sur le commit
     commits = data.get("commits", [])
-
-    # Branche
     branch = data["ref"].split("/")[-1]
 
-    # Envoyer les commits sur Discord
     for commit in commits:
         author = commit["author"]["name"]
         message = commit["message"]
@@ -56,31 +59,35 @@ def github_webhook():
             f"🔗 [Voir le commit]({url})"
         )
 
+        # On envoie le message au bot via une file d'attente
         asyncio.run_coroutine_threadsafe(
-            send_discord_message(discord_message),
-            client.loop
+            send_discord_message(message=discord_message),
+            bot_loop
         )
 
     return "OK", 200
 
 
-async def send_discord_message(message):
-    channel = client.get_channel(CHANNEL_ID)
+bot_loop = None
 
-    if channel:
-        await channel.send(message)
+
+def start_bot():
+    global bot_loop
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    bot_loop = loop
+
+    loop.run_until_complete(client.start(TOKEN))
 
 
 def run_flask():
-    app.run(host="0.0.0.0", port=5001)
-
-
-async def main():
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.start()
-
-    await client.start(TOKEN)
+    app.run(host="0.0.0.0", port=10000)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    bot_thread = threading.Thread(target=start_bot)
+    bot_thread.start()
+
+    run_flask()
