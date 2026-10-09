@@ -52,11 +52,11 @@ def github_webhook():
         url = commit["url"]
 
         discord_message = (
-            f"🚀 **Nouveau commit sur `{repository}`**\n\n"
-            f"👤 **Auteur :** {author}\n"
-            f"🌿 **Branche :** `{branch}`\n"
-            f"📝 **Message :** {message}\n"
-            f"🔗 [Voir le commit]({url})"
+            f" **Nouveau commit sur `{repository}`**\n\n"
+            f" **Auteur :** {author}\n"
+            f" **Branche :** `{branch}`\n"
+            f" **Message :** {message}\n"
+            f" [Voir le commit]({url})"
         )
 
         # On envoie le message au bot via une file d'attente
